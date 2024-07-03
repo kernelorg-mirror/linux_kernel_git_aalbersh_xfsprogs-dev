@@ -206,6 +206,10 @@ static const struct flag_map inode_flags[] = {
 		.mask = XFS_BS_SICK_DIRTREE,
 		.descr = "directory tree structure",
 	},
+	{
+		.mask = XFS_BS_SICK_FSVERITY,
+		.descr = "fsverity metadata",
+	},
 	{0},
 };
 
