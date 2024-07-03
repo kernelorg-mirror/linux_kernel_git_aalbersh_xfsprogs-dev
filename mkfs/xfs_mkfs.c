@@ -98,6 +98,7 @@ enum {
 	I_NREXT64,
 	I_EXCHANGE,
 	I_MAX_ATOMIC_WRITE,
+	I_VERITY,
 	I_MAX_OPTS,
 };
 
@@ -505,6 +506,7 @@ static struct opt_params iopts = {
 		[I_NREXT64] = "nrext64",
 		[I_EXCHANGE] = "exchange",
 		[I_MAX_ATOMIC_WRITE] = "max_atomic_write",
+		[I_VERITY] = "verity",
 		[I_MAX_OPTS] = NULL,
 	},
 	.subopt_params = {
@@ -572,6 +574,12 @@ static struct opt_params iopts = {
 		  .minval = 1,
 		  .maxval = GIGABYTES(1),
 		  .defaultval = SUBOPT_NEEDS_VAL,
+		},
+		{ .index = I_VERITY,
+		  .conflicts = { { NULL, LAST_CONFLICT } },
+		  .minval = 0,
+		  .maxval = 1,
+		  .defaultval = 1,
 		},
 	},
 };
@@ -1076,6 +1084,7 @@ struct sb_feat_args {
 	bool	zone_gaps;
 
 	uint16_t qflags;
+	bool	verity;			/* XFS_SB_FEAT_RO_COMPAT_VERITY */
 };
 
 struct cli_params {
@@ -1233,7 +1242,7 @@ usage( void )
 /* force overwrite */	[-f]\n\
 /* inode size */	[-i perblock=n|size=num,maxpct=n,attr=0|1|2,\n\
 			    projid32bit=0|1,sparse=0|1,nrext64=0|1,\n\
-			    exchange=0|1,max_atomic_write=n]\n\
+			    exchange=0|1,max_atomic_write=n,verity=0|1]\n\
 /* no discard */	[-K]\n\
 /* log subvol */	[-l agnum=n,internal,size=num,logdev=xxx,version=n\n\
 			    sunit=value|su=num,sectsize=num,lazy-count=0|1,\n\
@@ -1975,6 +1984,9 @@ inode_opts_parser(
 		break;
 	case I_MAX_ATOMIC_WRITE:
 		cli->max_atomic_write = getstr(value, opts, subopt);
+		break;
+	case I_VERITY:
+		cli->sb_feat.verity = getnum(value, opts, subopt);
 		break;
 	default:
 		return -EINVAL;
@@ -3012,6 +3024,14 @@ _("metadata directory not supported without CRC support\n"));
 _("persistent quota flags not supported without CRC support\n"));
 			usage();
 		}
+
+		if (cli->sb_feat.verity &&
+		    cli_opt_set(&iopts, I_VERITY)) {
+			fprintf(stderr,
+_("verity not supported without CRC support\n"));
+			usage();
+		}
+		cli->sb_feat.verity = false;
 	}
 
 	if (!cli->sb_feat.finobt) {
@@ -4939,6 +4959,9 @@ sb_set_features(
 	}
 	if (fp->zone_gaps)
 		sbp->sb_features_incompat |= XFS_SB_FEAT_INCOMPAT_ZONE_GAPS;
+
+	if (fp->verity)
+		sbp->sb_features_ro_compat |= XFS_SB_FEAT_RO_COMPAT_VERITY;
 }
 
 /*
@@ -6146,6 +6169,7 @@ main(
 			.bigtime = true,
 			.nrext64 = true,
 			.exchrange = true,
+			.verity = false,
 			/*
 			 * When we decide to enable a new feature by default,
 			 * please remember to update the mkfs conf files.
