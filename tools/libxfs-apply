@@ -69,6 +69,7 @@ COMMIT_ID=
 VERBOSE=
 GUILT=0
 STGIT=0
+OUTPUT=""
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -76,6 +77,7 @@ while [ $# -gt 0 ]; do
 	--patch)	PATCH=$2; shift ;;
 	--commit)	COMMIT_ID=$2 ; shift ;;
 	--sob)		SIGNED_OFF_BY=$2 ; shift ;;
+	--output)	OUTPUT=$2 ; shift ;;
 	--verbose)	VERBOSE=true ;;
 	*)		usage ;;
 	esac
@@ -361,6 +363,7 @@ apply_patch()
 	local _patch=$1
 	local _patch_name=$2
 	local _current_commit=$3
+	local _order=$4
 	local _new_patch=`mktemp`
 	local _source="kernel"
 	local _target="xfsprogs"
@@ -409,7 +412,13 @@ apply_patch()
 
 	# Ok, now apply with guilt or patch; either may fail and require a force
 	# and/or a manual reject fixup
-	if [ $GUILT -eq 1 ]; then
+	if [ -n "$OUTPUT" ]; then
+		mkdir -p $OUTPUT
+		_patch_name="$(printf %04d $_order)_$_patch_name"
+
+		echo "Saving patch to $OUTPUT/$_patch_name"
+		cp $_new_patch.2 "$OUTPUT/$_patch_name"
+	elif [ $GUILT -eq 1 ]; then
 		[ -n "$VERBOSE" ] || echo "$REPO looks like a guilt directory."
 		PATCHES=`guilt applied | wc -l`
 		if [ -n "$VERBOSE" -a $PATCHES -gt 0 ]; then
@@ -514,6 +523,7 @@ if [ -z "$response" -o "$response" != "y" ]; then
 fi
 popd > /dev/null
 
+i=0
 PATCH=`mktemp`
 for commit in $commit_list; do
 
@@ -523,7 +533,8 @@ for commit in $commit_list; do
 	patch_name=`name_patch $commit`
 	popd > /dev/null
 
-	apply_patch $PATCH $patch_name $commit
+	apply_patch $PATCH $patch_name $commit $i
+	((i += 1))
 done
 
 
