@@ -69,6 +69,7 @@ COMMIT_ID=
 VERBOSE=
 GUILT=0
 STGIT=0
+JJ=0
 OUTPUT=""
 
 while [ $# -gt 0 ]; do
@@ -105,6 +106,12 @@ fi
 stg log &> /dev/null
 if [ $? -eq 0 ]; then
 	STGIT=1
+fi
+
+# Are we using jj?
+jj &> /dev/null
+if [ $? -eq 0 ]; then
+	JJ=1
 fi
 
 #this is pulled from the guilt code to handle commit ids sanely.
@@ -211,7 +218,7 @@ fixup_header_format()
 	local _new_hdr=$_hdr.new
 
 	# Split the header on the first ^diff --git line (convenient!)
-	sed -e /^diff/q $_patch > $_hdr
+	sed -e /^diff/q $_patch | head -n -1 > $_hdr
 	cat $_patch | awk '
 		BEGIN { diff_seen = 0; index_seen = 0 }
 		/^diff/ { diff_seen++; next }
@@ -358,6 +365,32 @@ stg_force_import()
 	stg refresh
 }
 
+jj_force_import()
+{
+	local patch="$1"
+
+	jj abandon @
+
+	local tmpfile="${patch}.jj"
+	rm -f "${tmpfile}"
+
+	patch -p1 < "${patch}" &> "${tmpfile}"
+	cat "${tmpfile}"
+
+	# Open an editor so the user can clean up the rejects.  Use readarray
+	# instead of "<<<" because the latter picks up empty output as a single
+	# line and does variable expansion...  stupid bash.
+	readarray -t rej_files < <(grep 'saving rejects to' "${tmpfile}" | \
+				   sed -e 's/^.*saving rejects to file //g')
+	rm -f "${tmpfile}"
+	if [ "${#rej_files[@]}" -gt 0 ]; then
+		echo "Opening editor to deal with rejects.  Changes commit when you close the editor."
+		editor "${rej_files[@]}"
+	fi
+
+	jj cm -m "$(sed '/^--- /,$d' $patch)"
+}
+
 apply_patch()
 {
 	local _patch=$1
@@ -463,6 +496,26 @@ apply_patch()
 			else
 				echo "Skipping. Manual series file cleanup needed!"
 			fi
+		fi
+	elif [ $JJ -eq 1 ]; then
+		[ -n "$VERBOSE" ] || echo "$REPO looks like a jj directory."
+
+		patch -p1 < $_new_patch.2
+
+		if [ $? -ne 0 ]; then
+			echo "Failed to apply patch!"
+			read -r -p "Skip, force Apply, or Fail [s|a|F]? " response
+			if [ -z "$response" -o "$response" = "F" -o "$response" = "f" ]; then
+				echo "Force push patch, fix and refresh."
+				echo "Restart from commit $_current_commit"
+				fail "Manual cleanup required!"
+			elif [ "$response" = "a" -o "$response" = "A" ]; then
+				jj_force_import "$_new_patch.2"
+			else
+				echo "Skipping. Manual series file cleanup needed!"
+			fi
+		else 
+			jj cm -m "$(sed '/^--- /,$d' $_new_patch.2)"
 		fi
 	else
 		echo "Applying with git am:"
