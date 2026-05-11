@@ -258,6 +258,10 @@ struct file_attr {
 #define FS_XFLAG_COWEXTSIZE	0x00010000	/* CoW extent size allocator hint */
 #endif
 
+#ifndef FS_XFLAG_VERITY
+#define FS_XFLAG_VERITY		0x00020000	/* fs-verity enabled */
+#endif
+
 /* Atomic Write */
 #ifndef RWF_ATOMIC
 #define RWF_ATOMIC	((__kernel_rwf_t)0x00000040)
