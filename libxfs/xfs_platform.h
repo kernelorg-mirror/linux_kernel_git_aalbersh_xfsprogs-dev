@@ -604,4 +604,10 @@ int xfs_bmap_last_extent(struct xfs_trans *tp, struct xfs_inode *ip,
 #define irix_sgid_inherit		(false)
 #define vfsgid_in_group_p(...)		(false)
 
+/* fsverity */
+#define xfs_fsverity_metadata_offset(...)	(0)
+#define IOMAP_F_FSVERITY			0x04
+#define XFS_VERITY_CONSTRUCTION			(0)
+#define xfs_iflags_test(ip, flags)		(0)
+
 #endif	/* _XFS_PLATFORM_H */
