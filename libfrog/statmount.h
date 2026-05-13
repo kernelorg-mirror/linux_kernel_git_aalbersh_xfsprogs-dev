@@ -52,6 +52,14 @@ struct statmount {
 
 /* all the new flags added since the beginning of statmount */
 
+#ifndef STATMOUNT_MNT_BASIC
+#define STATMOUNT_MNT_BASIC		0x00000002U     /* Want/got mnt_... */
+#endif
+
+#ifndef STATMOUNT_MNT_POINT
+#define STATMOUNT_MNT_POINT		0x00000010U     /* Want/got mnt_point */
+#endif
+
 #ifndef STATMOUNT_MNT_NS_ID
 #define STATMOUNT_MNT_NS_ID		0x00000040U	/* Want/got mnt_ns_id */
 #endif
