@@ -98,11 +98,23 @@ struct statmount {
 int libfrog_listmount(uint64_t mnt_id, int mnt_ns_fd, uint64_t *cursor,
 		uint64_t *mnt_ids, size_t nr_mnt_ids);
 
+#ifdef HAVE_LISTMOUNT
 int libfrog_statmount(uint64_t mnt_id, int mnt_ns_fd, uint64_t statmount_flags,
 		struct statmount *smbuf, size_t smbuf_size);
-
 int libfrog_fstatmount(int fd, uint64_t statmount_flags,
 		struct statmount *smbuf, size_t smbuf_size);
+#else
+static inline int libfrog_statmount(uint64_t mnt_id, int mnt_ns_fd, uint64_t statmount_flags,
+		struct statmount *smbuf, size_t smbuf_size)
+{
+	return -ENOSYS;
+}
+static inline int libfrog_fstatmount(int fd, uint64_t statmount_flags,
+		struct statmount *smbuf, size_t smbuf_size)
+{
+	return -ENOSYS;
+}
+#endif
 
 static inline size_t libfrog_statmount_sizeof(size_t strings_bytes)
 {
