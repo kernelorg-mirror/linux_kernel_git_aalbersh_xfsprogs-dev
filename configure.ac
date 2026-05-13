@@ -192,8 +192,8 @@ AC_HAVE_CLOSE_RANGE
 AC_HAVE_LISTMOUNT
 if test "$have_listmount" = "yes"; then
 	AC_HAVE_LISTMOUNT_NS_FD
-	AC_HAVE_STATMOUNT_SUPPORTED_MASK
 fi
+AC_HAVE_STATMOUNT_SUPPORTED_MASK
 AC_HAVE_FANOTIFY_MOUNTINFO
 
 if test "$enable_ubsan" = "yes" || test "$enable_ubsan" = "probe"; then
