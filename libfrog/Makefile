@@ -97,6 +97,7 @@ CFLAGS += -DHAVE_CLOSE_RANGE
 endif
 
 ifeq ($(HAVE_LISTMOUNT),yes)
+CFLAGS += -DHAVE_LISTMOUNT
 CFILES += statmount.c
 HFILES += statmount.h
 endif
