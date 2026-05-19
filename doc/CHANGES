@@ -1,3 +1,12 @@
+xfsprogs-7.0.1 (19 May 2026)
+	xfs_healer: fix missing HAVE_LISTMOUNT flag and stubs (Darrick J. Wong)
+	libfrog: add missing HAVE_LISTMOUNT flag (Andrey Albershteyn)
+	gitignore: add xfs_healer binaries and services (Anthony Iliopoulos)
+	libfrog: add fallback stubs for libfrog_statmount and fstatmount (Anthony Iliopoulos)
+	libfrog: add missing statmount flag definitions (Anthony Iliopoulos)
+	configure: always check for statmount supported_mask (Anthony Iliopoulos)
+	platform_defs.h: fix __counted_by_ptr annotation (Darrick J. Wong)
+
 xfsprogs-7.0.0 (07 May 2026)
 	xfs_scrub: drop the warning about mixed bidirectional codepoints in names (Darrick J. Wong)
 	xfs_scrub_all: fix deadlock if lsblk produces a lot of output (Darrick J. Wong)
