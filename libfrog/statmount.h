@@ -107,12 +107,14 @@ int libfrog_fstatmount(int fd, uint64_t statmount_flags,
 static inline int libfrog_statmount(uint64_t mnt_id, int mnt_ns_fd, uint64_t statmount_flags,
 		struct statmount *smbuf, size_t smbuf_size)
 {
-	return -ENOSYS;
+	errno = ENOSYS;
+	return -1;
 }
 static inline int libfrog_fstatmount(int fd, uint64_t statmount_flags,
 		struct statmount *smbuf, size_t smbuf_size)
 {
-	return -ENOSYS;
+	errno = ENOSYS;
+	return -1;
 }
 #endif
 
