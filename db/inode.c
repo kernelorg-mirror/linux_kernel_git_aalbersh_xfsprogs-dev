@@ -17,6 +17,7 @@
 #include "bit.h"
 #include "output.h"
 #include "init.h"
+#include "bmap.h"
 
 static int	inode_a_bmbt_count(void *obj, int startoff);
 static int	inode_a_bmx_count(void *obj, int startoff);
@@ -39,6 +40,9 @@ static int	inode_core_anextents_offset(void *obj, int startoff, int idx);
 static int	inode_core_anextents16_count(void *obj, int startoff);
 static int	inode_core_anextents32_count(void *obj, int startoff);
 static int	inode_f(int argc, char **argv);
+static int	inode_verity_count(void *obj, int startoff);
+static uint64_t	inode_verity_merkle_offset(struct xfs_dinode *dip);
+static uint64_t	inode_verity_desc_offset(struct xfs_dinode *dip);
 static int	inode_u_offset(void *obj, int startoff, int idx);
 static int	inode_u_bmbt_count(void *obj, int startoff);
 static int	inode_u_bmx_count(void *obj, int startoff);
@@ -218,6 +222,10 @@ const field_t	inode_v3_flds[] = {
 	{ "verity", FLDT_UINT1,
 	  OI(COFF(flags2) + bitsz(uint64_t) - XFS_DIFLAG2_VERITY_BIT-1), C1,
 	  0, TYP_NONE },
+	{ "verity_merkle_dblock", FLDT_VERITY_MERKLE_LOC,
+	  NULL, inode_verity_count, FLD_COUNT, TYP_NONE },
+	{ "verity_desc_dblock", FLDT_VERITY_DESC_LOC,
+	  NULL, inode_verity_count, FLD_COUNT, TYP_NONE },
 	{ NULL }
 };
 
@@ -325,6 +333,48 @@ fp_metatype(
 {
 	return fp_enum_fmt(obj, bit, count, fmtstr, size, arg, base, array,
 			metatype_name, metatype_name_size);
+}
+
+int
+fp_verity_merkle_loc(
+	void			*obj,
+	int			bit,
+	int			count,
+	char			*fmtstr,
+	int			size,
+	int			arg,
+	int			base,
+	int			array)
+{
+	struct xfs_dinode	*dip = obj;
+	uint64_t		offset;
+
+	offset = inode_verity_merkle_offset(dip);
+	dbprintf("%llu", (unsigned long long)offset);
+	return 1;
+}
+
+int
+fp_verity_desc_loc(
+	void			*obj,
+	int			bit,
+	int			count,
+	char			*fmtstr,
+	int			size,
+	int			arg,
+	int			base,
+	int			array)
+{
+	struct xfs_dinode	*dip = obj;
+	uint64_t		offset;
+
+	offset = inode_verity_desc_offset(dip);
+	if (offset == 0) {
+		dbprintf("(not found)");
+	} else {
+		dbprintf("%llu", (unsigned long long)offset);
+	}
+	return 1;
 }
 
 static int
@@ -950,6 +1000,69 @@ inode_u_symlink_count(
 	return dip->di_format == XFS_DINODE_FMT_LOCAL &&
 	       (be16_to_cpu(dip->di_mode) & S_IFMT) == S_IFLNK ?
 		(int)be64_to_cpu(dip->di_size) : 0;
+}
+
+static int
+inode_verity_count(
+	void			*obj,
+	int			startoff)
+{
+	struct xfs_dinode	*dip;
+
+	ASSERT(startoff == 0);
+	ASSERT(obj == iocur_top->data);
+	dip = obj;
+
+	if ((be16_to_cpu(dip->di_mode) & S_IFMT) != S_IFREG)
+		return 0;
+
+	if (!(dip->di_flags2 & cpu_to_be64(XFS_DIFLAG2_VERITY)))
+		return 0;
+
+	return 1;
+}
+
+static uint64_t
+inode_verity_merkle_offset(
+	struct xfs_dinode	*dip)
+{
+	return ((be64_to_cpu(dip->di_size) + XFS_FSVERITY_START_ALIGN - 1) &
+			~(uint64_t)(XFS_FSVERITY_START_ALIGN - 1)
+		) >> mp->m_sb.sb_blocklog;
+}
+
+static uint64_t
+inode_verity_desc_offset(
+	struct xfs_dinode	*dip)
+{
+	xfs_bmbt_rec_t		*rp;
+	xfs_extnum_t		nextents;
+	xfs_fileoff_t		last_extent_end = 1;
+	xfs_fileoff_t		extent_end;
+	xfs_fileoff_t		o;
+	xfs_filblks_t		c;
+	xfs_filblks_t		s;
+	int			f;
+	unsigned int		i;
+
+	if (dip->di_format != XFS_DINODE_FMT_EXTENTS)
+		return 0;
+
+	rp = (xfs_bmbt_rec_t *)XFS_DFORK_DPTR(dip);
+	nextents = xfs_dfork_data_extents(dip);
+
+	if (nextents == 0)
+		return 0;
+
+	for (i = 0; i < nextents; i++) {
+		convert_extent(&rp[i], &o, &s, &c, &f);
+
+		extent_end = o + c;
+		if (extent_end > last_extent_end)
+			last_extent_end = extent_end;
+	}
+
+	return last_extent_end - 1;
 }
 
 /*

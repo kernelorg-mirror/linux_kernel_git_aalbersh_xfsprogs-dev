@@ -18,6 +18,10 @@ extern int	fp_dinode_fmt(void *obj, int bit, int count, char *fmtstr,
 			      int size, int arg, int base, int array);
 int		fp_metatype(void *obj, int bit, int count, char *fmtstr,
 			      int size, int arg, int base, int array);
+extern int	fp_verity_merkle_loc(void *obj, int bit, int count, char *fmtstr,
+			      int size, int arg, int base, int array);
+extern int	fp_verity_desc_loc(void *obj, int bit, int count, char *fmtstr,
+			      int size, int arg, int base, int array);
 extern int	inode_a_size(void *obj, int startoff, int idx);
 extern void	inode_init(void);
 extern typnm_t	inode_next_type(void);
