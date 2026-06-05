@@ -444,6 +444,11 @@ const ftattr_t	ftattrtab[] = {
 	{ FLDT_RGSUMMARY, "rgsummary", NULL, (char *)rgsummary_flds,
 	  btblock_size, FTARG_SIZE, NULL, rgsummary_flds },
 
+	{ FLDT_VERITY_MERKLE_LOC, "verity_merkle_dblock", fp_verity_merkle_loc,
+	  "%llu", SI(bitsz(uint64_t)), 0, NULL, NULL },
+	{ FLDT_VERITY_DESC_LOC, "verity_desc_dblock", fp_verity_desc_loc,
+	  "%llu", SI(bitsz(uint64_t)), 0, NULL, NULL },
+
 	{ FLDT_ZZZ, NULL }
 };
 
