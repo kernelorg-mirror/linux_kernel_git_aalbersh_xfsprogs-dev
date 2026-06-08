@@ -216,6 +216,9 @@ typedef enum fldt	{
 	FLDT_VERITY_MERKLE_LOC,
 	FLDT_VERITY_DESC_LOC,
 
+	FLDT_UINT64D_LE,
+	FLDT_FSVERITY_DESCR,
+
 	FLDT_ZZZ			/* mark last entry */
 } fldt_t;
 

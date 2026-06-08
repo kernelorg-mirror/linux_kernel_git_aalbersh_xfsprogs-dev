@@ -35,6 +35,7 @@ HFILES = \
 	frag.h \
 	freesp.h \
 	fsmap.h \
+	fsverity.h \
 	fuzz.h \
 	hash.h \
 	help.h \
@@ -77,6 +78,10 @@ LLDFLAGS += -static-libtool-libs
 ifeq ($(ENABLE_EDITLINE),yes)
 LLDLIBS += $(LIBEDITLINE) $(LIBTERMCAP)
 CFLAGS += -DENABLE_EDITLINE
+endif
+
+ifeq ($(HAVE_FSVERITY_DESCR),yes)
+CFLAGS += -DHAVE_FSVERITY_DESCR
 endif
 
 default: depend $(LTCOMMAND)

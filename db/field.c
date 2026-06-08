@@ -24,6 +24,7 @@
 #include "dir2sf.h"
 #include "symlink.h"
 #include "rtgroup.h"
+#include "fsverity.h"
 
 #define	PPOFF(f)	bitize(offsetof(struct xfs_parent_rec, f))
 const field_t		parent_flds[] = {
@@ -448,6 +449,15 @@ const ftattr_t	ftattrtab[] = {
 	  "%llu", SI(bitsz(uint64_t)), 0, NULL, NULL },
 	{ FLDT_VERITY_DESC_LOC, "verity_desc_dblock", fp_verity_desc_loc,
 	  "%llu", SI(bitsz(uint64_t)), 0, NULL, NULL },
+
+	{ FLDT_UINT64D_LE, "uint64d_le", fp_num, "%llu", SI(bitsz(uint64_t)),
+	  FTARG_LE, NULL, NULL },
+#ifdef HAVE_FSVERITY_DESCR
+	{ FLDT_FSVERITY_DESCR, "verity", NULL, (char *)vdesc_flds,
+	  SI(bitsz(struct fsverity_descriptor)), 0, NULL, vdesc_flds },
+#else
+	{ FLDT_FSVERITY_DESCR, "verity", NULL, NULL, 0, 0, NULL, NULL },
+#endif
 
 	{ FLDT_ZZZ, NULL }
 };

@@ -39,6 +39,7 @@ typedef enum typnm
 	TYP_FINOBT,
 	TYP_RGBITMAP,
 	TYP_RGSUMMARY,
+	TYP_FSVERITY_DESC,
 	TYP_NONE
 } typnm_t;
 
