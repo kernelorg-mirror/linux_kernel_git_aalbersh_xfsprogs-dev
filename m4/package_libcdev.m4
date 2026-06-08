@@ -495,3 +495,22 @@ AC_DEFUN([AC_HAVE_QUOTACTL_FD],
        AC_MSG_RESULT(no))
     AC_SUBST(have_quotactl_fd)
   ])
+
+
+#
+# Check if linux/fsverity.h defines the verity descriptor
+#
+AC_DEFUN([AC_HAVE_FSVERITY_DESCRIPTOR],
+  [AC_MSG_CHECKING([for fsverity_descriptor in linux/fsverity.h ])
+    AC_COMPILE_IFELSE(
+    [AC_LANG_PROGRAM([[
+#include <linux/types.h>
+#include <linux/fsverity.h>
+    ]], [[
+struct fsverity_descriptor m = { };
+        ]])
+    ], have_fsverity_descr=yes
+       AC_MSG_RESULT(yes),
+       AC_MSG_RESULT(no))
+    AC_SUBST(have_fsverity_descr)
+  ])
