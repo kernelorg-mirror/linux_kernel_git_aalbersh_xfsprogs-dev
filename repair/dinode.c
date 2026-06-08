@@ -2406,6 +2406,62 @@ _("nblocks (%" PRIu64 ") smaller than nextents for inode %" PRIu64 "\n"), nblock
 }
 
 /*
+ * Truncate orphaned verity metadata blocks beyond EOF.
+ * On verity-enabled filesystems, if a regular file had the verity flag cleared
+ * (e.g., corruption or incompatibility), we need to remove the orphaned merkle
+ * tree blocks that start at the next 64k boundary after EOF.
+ */
+static void
+truncate_verity_metadata(
+	struct xfs_mount	*mp,
+	xfs_ino_t		lino,
+	struct xfs_dinode	*dino,
+	blkmap_t		*dblkmap,
+	int			*dirty)
+{
+	xfs_fsize_t		file_size;
+	xfs_fileoff_t		eof_offset;
+	xfs_fileoff_t		last_offset;
+	xfs_fileoff_t		merkle_tree_offset;
+	uint64_t		aligned_size;
+
+	if (!dblkmap)
+		return;
+
+	file_size = be64_to_cpu(dino->di_size);
+	eof_offset = XFS_B_TO_FSB(mp, file_size);
+	last_offset = blkmap_last_off(dblkmap);
+
+	if (last_offset == NULLFILEOFF)
+		return;
+
+	if (last_offset <= eof_offset)
+		return;
+
+	/*
+	 * Verity metadata starts at the next XFS_FSVERITY_START_ALIGN boundary.
+	 */
+	aligned_size = (file_size + XFS_FSVERITY_START_ALIGN - 1) &
+		       ~(uint64_t)(XFS_FSVERITY_START_ALIGN - 1);
+	merkle_tree_offset = XFS_B_TO_FSB(mp, aligned_size);
+
+	if (last_offset >= merkle_tree_offset) {
+		do_warn(
+_("inode %" PRIu64 " has orphaned verity metadata (last: %lu, merkle: %lu, EOF: %lu), "),
+				lino,
+				last_offset,
+				merkle_tree_offset,
+				eof_offset);
+		if (!no_modify) {
+			do_warn(_("truncating\n"));
+			*dirty = 1;
+		} else {
+			do_warn(_("would truncate\n"));
+		}
+	}
+}
+
+/*
  * check data fork -- if it's bad, clear the inode
  */
 static int
@@ -2421,7 +2477,8 @@ process_inode_data_fork(
 	blkmap_t		**dblkmap,
 	int			check_dups,
 	struct xfs_buf		**ino_bpp,
-	bool			zap_metadata)
+	bool			zap_metadata,
+	bool			verity_cleared)
 {
 	struct xfs_dinode	*dino = *dinop;
 	xfs_ino_t		lino = XFS_AGINO_TO_INO(mp, agno, ino);
@@ -2454,7 +2511,7 @@ retry:
 	 * and realtime space metadata.
 	 */
 	if (dino->di_format != XFS_DINODE_FMT_LOCAL &&
-	    (type != XR_INO_RTDATA && type != XR_INO_DATA))
+	    (type != XR_INO_RTDATA && (type != XR_INO_DATA || verity_cleared)))
 		*dblkmap = blkmap_alloc(*nextents, XFS_DATA_FORK);
 	*nextents = 0;
 
@@ -3048,6 +3105,7 @@ process_dinode_int(
 	struct xfs_perag	*pag;
 	bool			is_meta = false;
 	bool			zap_metadata = false;
+	bool			verity_cleared = false;
 
 	*dirty = *isa_dir = 0;
 	*used = is_used;
@@ -3485,6 +3543,7 @@ _("bad (negative) size %" PRId64 " on inode %" PRIu64 "\n"),
 			}
 
 			flags2 &= ~XFS_DIFLAG2_VERITY;
+			verity_cleared = true;
 			if (!no_modify)
 				*dirty = 1;
 		}
@@ -3499,6 +3558,7 @@ _("bad (negative) size %" PRId64 " on inode %" PRIu64 "\n"),
 				}
 
 				flags2 &= ~XFS_DIFLAG2_VERITY;
+				verity_cleared = true;
 				if (!no_modify)
 					*dirty = 1;
 			}
@@ -3659,9 +3719,12 @@ _("bad (negative) size %" PRId64 " on inode %" PRIu64 "\n"),
 	 */
 	if (process_inode_data_fork(mp, agno, ino, dinop, type, dirty,
 			&totblocks, &nextents, &dblkmap, check_dups,
-			ino_bpp, zap_metadata) != 0)
+			ino_bpp, zap_metadata, verity_cleared) != 0)
 		goto bad_out;
 	dino = *dinop;
+
+	if (verity_cleared)
+		truncate_verity_metadata(mp, lino, dino, dblkmap, dirty);
 
 	/*
 	 * check attribute fork if necessary.  attributes are
