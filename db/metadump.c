@@ -1165,6 +1165,15 @@ is_metadata_ino(
 }
 
 static inline bool
+is_verity_ino(
+	struct xfs_dinode	*dip)
+{
+	if (!xfs_has_verity(mp) || dip->di_version < 3)
+		return false;
+	return dip->di_flags2 & cpu_to_be64(XFS_DIFLAG2_VERITY);
+}
+
+static inline bool
 want_obfuscate_dirents(bool is_meta)
 {
 	return metadump.obfuscate && !is_meta;
@@ -2160,6 +2169,7 @@ process_bmbt_reclist(
 	int			numrecs)
 {
 	bool			is_meta = is_metadata_ino(dip);
+	bool			is_verity = is_verity_ino(dip);
 	typnm_t			btype = ifork_data_type(dip, whichfork);
 	int			i;
 	xfs_fileoff_t		o, op = NULLFILEOFF;
@@ -2170,12 +2180,24 @@ process_bmbt_reclist(
 	xfs_agnumber_t		agno;
 	xfs_agblock_t		agbno;
 	int			rval = 1;
+	xfs_fileoff_t		verity_offset = 0;
+	xfs_fsize_t		i_size = be64_to_cpu(dip->di_size);
+
 
 	/*
-	 * Ignore regular file data except for metadata inodes, where it is by
-	 * definition metadata.
+	 * Verity metadata starts at the next 64k boundary after EOF.
 	 */
-	if (btype == TYP_DATA && !is_metadata_ino(dip))
+	if (is_verity && whichfork == XFS_DATA_FORK)
+		verity_offset = XFS_B_TO_FSB(mp,
+				(i_size + XFS_FSVERITY_START_ALIGN - 1) &
+				~(uint64_t)(XFS_FSVERITY_START_ALIGN - 1));
+
+	/*
+	 * Ignore regular file data except for:
+	 * - metadata inodes, where it is by definition metadata
+	 * - verity file metadata blocks (beyond EOF)
+	 */
+	if (btype == TYP_DATA && !is_metadata_ino(dip) && !is_verity)
 		return 1;
 
 	convert_extent(&rp[numrecs - 1], &o, &s, &c, &f);
@@ -2237,6 +2259,22 @@ process_bmbt_reclist(
 					(long long)metadump.cur_ino,
 					agno, agbno + c - 1);
 			break;
+		}
+
+		/*
+		 * For verity files, skip regular file data, but dump the verity
+		 * metadata blocks.
+		 */
+		if (is_verity && btype == TYP_DATA) {
+			if (o + c <= verity_offset)
+				continue;
+
+			if (o < verity_offset) {
+				xfs_filblks_t skip = verity_offset - o;
+				s += skip;
+				c -= skip;
+				o = verity_offset;
+			}
 		}
 
 		/* multi-extent blocks require special handling */
