@@ -2411,32 +2411,80 @@ _("nblocks (%" PRIu64 ") smaller than nextents for inode %" PRIu64 "\n"), nblock
  * (e.g., corruption or incompatibility), we need to remove the orphaned merkle
  * tree blocks that start at the next 64k boundary after EOF.
  */
-static void
+
+/*
+ * Truncate the blkmap of an inode to the given offset, removing any extents
+ * that start at or beyond max_offset. Returns the number of extents removed.
+ */
+static xfs_extnum_t
+truncate_blkmap_to_offset(
+	blkmap_t		*dblkmap,
+	xfs_fileoff_t		max_offset,
+	xfs_rfsblock_t		*blocks_removed)
+{
+	xfs_extnum_t		i;
+	xfs_extnum_t		new_nexts = 0;
+
+	*blocks_removed = 0;
+
+	if (!dblkmap)
+		return 0;
+
+	/*
+	 * Scan through extents and keep only those that start before
+	 * max_offset. Remove extents that start at or after max_offset.
+	 */
+	for (i = 0; i < dblkmap->nexts; i++) {
+		if (dblkmap->exts[i].startoff >= max_offset) {
+			/* This extent is completely beyond EOF, remove it */
+			*blocks_removed += dblkmap->exts[i].blockcount;
+			continue;
+		}
+
+		/* Keep this extent */
+		if (new_nexts != i) {
+			/* Move extent down if we've removed any */
+			dblkmap->exts[new_nexts] = dblkmap->exts[i];
+		}
+		new_nexts++;
+	}
+
+	dblkmap->nexts = new_nexts;
+	return i - new_nexts;  /* number of extents removed */
+}
+
+static int
 truncate_verity_metadata(
 	struct xfs_mount	*mp,
-	xfs_ino_t		lino,
-	struct xfs_dinode	*dino,
+	xfs_agnumber_t		agno,
+	xfs_agino_t		ino,
+	struct xfs_buf		**ino_bpp,
+	struct xfs_dinode	**dinop,
 	blkmap_t		*dblkmap,
+	xfs_rfsblock_t		*totblocks,
+	uint64_t		*nextents,
 	int			*dirty)
 {
-	xfs_fsize_t		file_size;
-	xfs_fileoff_t		eof_offset;
+	struct xfs_dinode	*dino = *dinop;
+	xfs_ino_t		lino = XFS_AGINO_TO_INO(mp, agno, ino);
+	xfs_fsize_t		file_size = be64_to_cpu(dino->di_size);
+	xfs_fileoff_t		eof_fsb = XFS_B_TO_FSB(mp, file_size);
 	xfs_fileoff_t		last_offset;
 	xfs_fileoff_t		merkle_tree_offset;
 	uint64_t		aligned_size;
+	xfs_extnum_t		extents_removed;
+	xfs_rfsblock_t		blocks_removed;
+	int			error;
 
 	if (!dblkmap)
-		return;
+		return 0;
 
-	file_size = be64_to_cpu(dino->di_size);
-	eof_offset = XFS_B_TO_FSB(mp, file_size);
 	last_offset = blkmap_last_off(dblkmap);
-
 	if (last_offset == NULLFILEOFF)
-		return;
+		return 0;
 
-	if (last_offset <= eof_offset)
-		return;
+	if (last_offset <= eof_fsb)
+		return 0;
 
 	/*
 	 * Verity metadata starts at the next XFS_FSVERITY_START_ALIGN boundary.
@@ -2445,20 +2493,48 @@ truncate_verity_metadata(
 		       ~(uint64_t)(XFS_FSVERITY_START_ALIGN - 1);
 	merkle_tree_offset = XFS_B_TO_FSB(mp, aligned_size);
 
-	if (last_offset >= merkle_tree_offset) {
-		do_warn(
+	if (last_offset < merkle_tree_offset)
+		return 0;
+
+	do_warn(
 _("inode %" PRIu64 " has orphaned verity metadata (last: %lu, merkle: %lu, EOF: %lu), "),
-				lino,
-				last_offset,
-				merkle_tree_offset,
-				eof_offset);
-		if (!no_modify) {
-			do_warn(_("truncating\n"));
-			*dirty = 1;
-		} else {
-			do_warn(_("would truncate\n"));
-		}
+			lino, last_offset, merkle_tree_offset, eof_fsb);
+
+	if (no_modify) {
+		do_warn(_("would truncate\n"));
+		return 0;
 	}
+
+	do_warn(_("truncating\n"));
+
+	/* Truncate the blkmap to EOF */
+	extents_removed = truncate_blkmap_to_offset(dblkmap, eof_fsb,
+						    &blocks_removed);
+
+	if (extents_removed == 0)
+		return 0;
+
+	do_warn(
+_("Removed %llu extents (%llu blocks) from inode %" PRIu64 "\n"),
+		(unsigned long long)extents_removed,
+		(unsigned long long)blocks_removed,
+		lino);
+
+	/* Update counters */
+	*totblocks -= blocks_removed;
+	*nextents -= extents_removed;
+
+	/* Rebuild the inode's extent/btree from the modified blkmap */
+	error = rebuild_bmap(mp, lino, XFS_DATA_FORK, dblkmap->nexts,
+			     ino_bpp, dinop, dirty);
+	if (error) {
+		do_warn(
+_("Failed to rebuild data fork for inode %" PRIu64 ", error %d\n"),
+			lino, error);
+		return error;
+	}
+
+	return 0;
 }
 
 /*
@@ -3723,8 +3799,18 @@ _("bad (negative) size %" PRId64 " on inode %" PRIu64 "\n"),
 		goto bad_out;
 	dino = *dinop;
 
-	if (verity_cleared)
-		truncate_verity_metadata(mp, lino, dino, dblkmap, dirty);
+	if (verity_cleared) {
+		if (truncate_verity_metadata(mp, agno, ino, ino_bpp, dinop,
+					     dblkmap, &totblocks, &nextents,
+					     dirty) != 0) {
+			do_warn(
+_("Failed to truncate verity metadata for inode %" PRIu64 "\n"),
+				lino);
+			goto bad_out;
+		}
+		dino = *dinop;
+	}
+
 
 	/*
 	 * check attribute fork if necessary.  attributes are
