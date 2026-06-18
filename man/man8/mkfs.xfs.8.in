@@ -463,7 +463,7 @@ is required if
 is given. Otherwise, it is only needed if the filesystem should occupy
 less space than the size of the special file.
 
-The data section must be at least 300MB in size.
+The data section must be at least 300MiB in size.
 .TP
 .BI sunit= value
 This is used to specify the stripe unit for a RAID device or a
@@ -805,8 +805,8 @@ described above. The overriding minimum value for size is 512 blocks.
 With some combinations of filesystem block size, inode size,
 and directory block size, the minimum log size is larger than 512 blocks.
 
-The log must be at least 64MB in size.
-The log cannot be more than 2GB in size.
+The log must be at least 64MiB in size.
+The log cannot be more than 2GiB in size.
 .TP
 .BI version= value
 This specifies the version of the log. The current default is 2,

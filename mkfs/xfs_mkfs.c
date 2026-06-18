@@ -25,10 +25,10 @@
 #define MEGABLOCKS(count, blog)	((uint64_t)(count) << (20 - (blog)))
 
 /*
- * Realistically, the log should never be smaller than 64MB.  Studies by the
+ * Realistically, the log should never be smaller than 64MiB.  Studies by the
  * kernel maintainer in early 2022 have shown a dramatic reduction in long tail
  * latency of the xlog grant head waitqueue when running a heavy metadata
- * update workload when the log size is at least 64MB.
+ * update workload when the log size is at least 64MiB.
  */
 #define XFS_MIN_REALISTIC_LOG_BLOCKS(blog)	(MEGABLOCKS(64, (blog)))
 
@@ -3435,19 +3435,19 @@ validate_supported(
 		return;
 
 	/*
-	 * We don't support filesystems smaller than 300MB anymore.  Tiny
+	 * We don't support filesystems smaller than 300MiB anymore.  Tiny
 	 * filesystems have never been XFS' design target.  This limit has been
 	 * carefully calculated to prevent formatting with a log smaller than
 	 * the "realistic" size.
 	 *
-	 * If the realistic log size is 64MB, there are four AGs, and the log
+	 * If the realistic log size is 64MiB, there are four AGs, and the log
 	 * AG should be at least 1/8 free after formatting, this gives us:
 	 *
-	 * 64MB * (8 / 7) * 4 = 293MB
+	 * 64MiB * (8 / 7) * 4 = 293MiB
 	 */
 	if (mp->m_sb.sb_dblocks < MEGABLOCKS(300, mp->m_sb.sb_blocklog)) {
 		fprintf(stderr,
- _("Filesystem must be larger than 300MB.\n"));
+ _("Filesystem must be larger than 300MiB.\n"));
 		usage();
 	}
 
@@ -3458,7 +3458,7 @@ validate_supported(
 	if (mp->m_sb.sb_logblocks <
 			XFS_MIN_REALISTIC_LOG_BLOCKS(mp->m_sb.sb_blocklog)) {
 		fprintf(stderr,
- _("Log size must be at least 64MB.\n"));
+ _("Log size must be at least 64MiB.\n"));
 		usage();
 	}
 
