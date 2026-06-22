@@ -15,7 +15,6 @@
 #include "libfrog/dahashselftest.h"
 #include "libfrog/fsproperties.h"
 #include "libfrog/zones.h"
-#include "libfrog/convert.h"
 #include "proto.h"
 #include <ini.h>
 
