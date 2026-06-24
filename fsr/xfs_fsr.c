@@ -678,7 +678,7 @@ fsrfs(char *mntdir, xfs_ino_t startino, int targetrange)
 		return -1;
 	}
 
-	while ((ret = -xfrog_bulkstat(&fsxfd, breq) == 0)) {
+	while ((ret = -xfrog_bulkstat(&fsxfd, breq)) == 0) {
 		struct xfs_bulkstat	*buf = breq->bulkstat;
 		struct xfs_bulkstat	*p;
 		struct xfs_bulkstat	*endp;
