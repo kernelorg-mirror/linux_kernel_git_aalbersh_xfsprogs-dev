@@ -111,19 +111,6 @@ scan_ag_rmaps(
 	keys[1].fmr_offset = ULLONG_MAX;
 	keys[1].fmr_flags = UINT_MAX;
 
-	/*
-	 * fsmap for an internal rt volume treats physical ranges as offsets
-	 * into the underlying block device.  Shift the query range up by
-	 * @rtstart here to skip the synthetic "internal filesystem" fsmap.
-	 */
-	if (ctx->mnt.fsgeom.rtstart) {
-		uint64_t	offset = ctx->mnt.fsgeom.rtstart *
-					 ctx->mnt.fsgeom.blocksize;
-
-		keys[0].fmr_physical += offset;
-		keys[1].fmr_physical += offset;
-	}
-
 	if (sbx->aborted)
 		return;
 
