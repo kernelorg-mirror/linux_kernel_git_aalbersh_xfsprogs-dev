@@ -395,11 +395,9 @@ restore_meta_extent(
 	char		*device,
 	void		*buf,
 	uint64_t	offset,
-	int		len)
+	uint64_t	len)
 {
-	int		io_size;
-
-	io_size = min(len, MDR_IO_BUF_SIZE);
+	size_t io_size = min(len, MDR_IO_BUF_SIZE);
 
 	do {
 		if (fread(buf, io_size, 1, md_fp) != 1)
@@ -428,7 +426,7 @@ restore_v2(
 	int64_t			mb_read = 0;
 	int64_t			bytes_read;
 	uint64_t		offset;
-	int			len;
+	uint64_t		len;
 
 	block_buffer = malloc(MDR_IO_BUF_SIZE);
 	if (block_buffer == NULL)
@@ -445,7 +443,7 @@ restore_v2(
 		fatal("Invalid superblock disk address 0x%llx\n",
 				be64_to_cpu(xme.xme_addr));
 
-	len = BBTOB(be32_to_cpu(xme.xme_len));
+	len = BBTOB((uint64_t)be32_to_cpu(xme.xme_len));
 
 	/* The primary superblock is always a single filesystem sector. */
 	if (len < BBTOB(1) || len > XFS_MAX_SECTORSIZE)
@@ -511,7 +509,7 @@ restore_v2(
 			break;
 		}
 
-		len = BBTOB(be32_to_cpu(xme.xme_len));
+		len = BBTOB((uint64_t)be32_to_cpu(xme.xme_len));
 
 		restore_meta_extent(md_fp, fd, device, block_buffer, offset,
 				len);
