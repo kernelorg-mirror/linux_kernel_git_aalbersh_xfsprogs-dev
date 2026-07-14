@@ -69,7 +69,9 @@ install: $(INSTALL_HEALER)
 
 install-healer: default
 	$(INSTALL) -m 755 -d $(PKG_LIBEXEC_DIR)
-	$(LTINSTALL) -m 755 $(BUILD_TARGETS) $(PKG_LIBEXEC_DIR)
+	for f in $(BUILD_TARGETS); do \
+		$(LTINSTALL) -m 755 $$f $(PKG_LIBEXEC_DIR); \
+	done
 
 install-systemd: default
 	$(INSTALL) -m 755 -d $(SYSTEMD_SYSTEM_UNIT_DIR)
