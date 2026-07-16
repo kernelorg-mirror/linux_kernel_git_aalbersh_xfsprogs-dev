@@ -458,10 +458,12 @@ do_error(char const *msg, ...)
 {
 	va_list args;
 
+	flockfile(stderr);
 	fprintf(stderr, _("\nfatal error -- "));
 
 	va_start(args, msg);
 	vfprintf(stderr, msg, args);
+	funlockfile(stderr);
 	if (dumpcore)
 		abort();
 	exit(1);

@@ -116,8 +116,10 @@ cmn_err(int level, char *fmt, ...)
 	va_list	ap;
 
 	va_start(ap, fmt);
+	flockfile(stderr);
 	vfprintf(stderr, fmt, ap);
 	fputs("\n", stderr);
+	funlockfile(stderr);
 	va_end(ap);
 }
 
