@@ -1,3 +1,9 @@
+xfsprogs (7.1.1-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Nathan Scott <nathans@debian.org>  Fri, 17 Jul 2026 11:08:37 +0200
+
 xfsprogs (7.1.0-1) unstable; urgency=low
 
   * New upstream release
