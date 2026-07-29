@@ -891,8 +891,8 @@ main(int argc, char **argv)
 			off -= XFS_MAX_SECTORSIZE;
 			len = pwrite(target[i].fd, lb, XFS_MAX_SECTORSIZE, off);
 			if (len < 0) {
-				do_log(_("%s:  failed to write last block\n"),
-					progname);
+				do_log(_("%s:  failed to write last block: %s\n"),
+					progname, strerror(errno));
 				do_log(_("\tIs target \"%s\" too small?\n"),
 					target[i].name);
 				die_perror();
