@@ -22,8 +22,8 @@ count_rtblocks(
 	if (error) {
 		dbprintf(
 _("could not read AG %u agino %u extents, err=%d\n"),
-				XFS_INO_TO_AGNO(ip->i_mount, ip->i_ino),
-				XFS_INO_TO_AGINO(ip->i_mount, ip->i_ino),
+				XFS_INO_TO_AGNO(ip->i_mount, I_INO(ip)),
+				XFS_INO_TO_AGINO(ip->i_mount, I_INO(ip)),
 				error);
 		return 0;
 	}
@@ -246,8 +246,8 @@ create_unlinked(
 		dbprintf(_("commit inode: %s\n"), strerror(error));
 
 	dbprintf(_("Created unlinked inode %llu in agno %u\n"),
-			(unsigned long long)ip->i_ino,
-			XFS_INO_TO_AGNO(mp, ip->i_ino));
+			(unsigned long long)I_INO(ip),
+			XFS_INO_TO_AGNO(mp, I_INO(ip)));
 	libxfs_irele(ip);
 	return error;
 out_rele:

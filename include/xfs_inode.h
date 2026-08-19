@@ -66,6 +66,7 @@ struct inode {
 	mode_t			i_mode;
 	kuid_t			i_uid;
 	kgid_t			i_gid;
+	uint64_t		i_ino;
 	uint32_t		i_nlink;
 	xfs_dev_t		i_rdev;	 /* This actually holds xfs_dev_t */
 	unsigned int		i_count;
@@ -218,7 +219,6 @@ static inline bool inode_wrong_type(const struct inode *inode, umode_t mode)
 typedef struct xfs_inode {
 	struct cache_node	i_node;
 	struct xfs_mount	*i_mount;	/* fs mount struct ptr */
-	xfs_ino_t		i_ino;		/* inode number (agno/agino) */
 	struct xfs_imap		i_imap;		/* location for xfs_imap() */
 	struct xfs_ifork	*i_cowfp;	/* copy on write extents */
 	struct xfs_ifork	i_df;		/* data fork */
@@ -444,5 +444,10 @@ extern void	libxfs_irele(struct xfs_inode *ip);
 #define xfs_inherit_sync		(false)
 #define xfs_inherit_nosymlinks		(false)
 #define xfs_inherit_nodefrag		(false)
+
+static inline xfs_ino_t I_INO(const struct xfs_inode *ip)
+{
+	return VFS_IC(ip)->i_ino;
+}
 
 #endif /* __XFS_INODE_H__ */

@@ -134,7 +134,7 @@ xrep_bmap_walk_rmap(
 	int				error;
 
 	/* Skip extents which are not owned by this inode and fork. */
-	if (rec->rm_owner != rb->sc->ip->i_ino)
+	if (rec->rm_owner != I_INO(rb->sc->ip))
 		return 0;
 
 	error = xrep_bmap_check_fork_rmap(rb, cur, rec);
@@ -252,7 +252,7 @@ xrep_bmap_walk_rtrmap(
 	int				error = 0;
 
 	/* Skip extents which are not owned by this inode and fork. */
-	if (rec->rm_owner != rb->sc->ip->i_ino)
+	if (rec->rm_owner != I_INO(rb->sc->ip))
 		return 0;
 
 	error = xrep_bmap_check_rtfork_rmap(rb->sc, cur, rec);
@@ -576,7 +576,7 @@ xrep_bmap_build_new_fork(
 	 * Prepare to construct the new fork by initializing the new btree
 	 * structure and creating a fake ifork in the ifakeroot structure.
 	 */
-	libxfs_rmap_ino_bmbt_owner(&oinfo, sc->ip->i_ino, rb->whichfork);
+	libxfs_rmap_ino_bmbt_owner(&oinfo, I_INO(sc->ip), rb->whichfork);
 	bulkload_init_inode(&rb->new_fork_info, sc, rb->whichfork, &oinfo);
 	bmap_cur = libxfs_bmbt_init_cursor(sc->mp, NULL, sc->ip,
 			XFS_STAGING_FORK);
