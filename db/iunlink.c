@@ -46,6 +46,7 @@ get_next_unlinked(
 	xfs_ino_t		ino;
 	xfs_agino_t		ret;
 	int			error;
+	struct xfs_perag	*pag = libxfs_perag_get(mp, agno);
 
 	ino = XFS_AGINO_TO_INO(mp, agno, agino);
 	error = -libxfs_iget(mp, NULL, ino, 0, &ip);
@@ -65,7 +66,8 @@ get_next_unlinked(
 		dbprintf("\n");
 	}
 
-	error = -libxfs_imap_to_bp(mp, NULL, &ip->i_imap, &ino_bp);
+	error = -libxfs_read_icluster(pag, NULL, ip->i_imap.im_agbno, &ino_bp);
+	libxfs_perag_put(pag);
 	if (error) {
 		libxfs_irele(ip);
 		goto bad;

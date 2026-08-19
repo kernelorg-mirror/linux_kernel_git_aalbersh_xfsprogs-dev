@@ -745,6 +745,7 @@ rebuild_bmap(
 	xfs_daddr_t		bp_bn;
 	int			bp_length;
 	int			error, err2;
+	struct xfs_perag	*pag;
 
 	bp_bn = xfs_buf_daddr(*ino_bpp);
 	bp_length = (*ino_bpp)->b_length;
@@ -821,7 +822,10 @@ rebuild_bmap(
 	 * Rebuilding the inode fork rolled the transaction, so we need to
 	 * re-grab the inode cluster buffer and dinode pointer for the caller.
 	 */
-	err2 = -libxfs_imap_to_bp(mp, NULL, &sc.ip->i_imap, ino_bpp);
+	pag = libxfs_perag_get(sc.ip->i_mount, XFS_INODE_TO_AGNO(sc.ip));
+	err2 = -libxfs_read_icluster(pag, NULL, sc.ip->i_imap.im_agbno,
+			ino_bpp);
+	libxfs_perag_put(pag);
 	if (err2)
 		do_error(
  _("Unable to re-grab inode cluster buffer after failed repair of inode %llu, error %d.\n"),
