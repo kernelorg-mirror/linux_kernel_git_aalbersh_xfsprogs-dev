@@ -268,6 +268,11 @@ struct file_attr {
 #define RWF_DONTCACHE	((__kernel_rwf_t)0x00000080)
 #endif
 
+#ifndef FS_XFLAG_CASEFOLD
+#define FS_XFLAG_CASEFOLD	0x00040000	/* case-insensitive lookups */
+#define FS_XFLAG_CASENONPRESERVING 0x00080000	/* case not preserved */
+#endif
+
 /*
  * Reminder: anything added to this file will be compiled into downstream
  * userspace projects!
