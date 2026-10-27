@@ -81,6 +81,7 @@ HFILES = \
 	xfs_trans_resv.h \
 	xfs_trans_space.h \
 	xfs_trans.h \
+	xfs_verity.h \
 	xfs_zones.h \
 	stubs/xfs_buf_mem.h \
 	stubs/xfs_error.h \
@@ -155,6 +156,7 @@ CFILES = buf_mem.c \
 	xfs_trans_resv.c \
 	xfs_trans_space.c \
 	xfs_types.c \
+	xfs_verity.c \
 	xfs_zones.c
 
 EXTRA_CFILES=\
