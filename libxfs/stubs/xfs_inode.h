@@ -316,7 +316,7 @@ xfs_inode_fork_size(
 }
 
 /* Convert from vfs inode to xfs inode */
-static inline struct xfs_inode *XFS_I(struct inode *inode)
+static inline struct xfs_inode *XFS_IC(const struct inode *inode)
 {
 	return container_of(inode, struct xfs_inode, i_vnode);
 }
@@ -334,9 +334,9 @@ static inline const struct inode *VFS_IC(const struct xfs_inode *ip)
 }
 
 /* We only have i_size in the xfs inode in userspace */
-static inline loff_t i_size_read(struct inode *inode)
+static inline loff_t i_size_read(const struct inode *inode)
 {
-	return XFS_I(inode)->i_disk_size;
+	return XFS_IC(inode)->i_disk_size;
 }
 
 /*
