@@ -51,6 +51,7 @@ extern struct kmem_cache *xfs_trans_cache;
 
 /* fake up iomap, (not) used in xfs_bmap.[ch] */
 #define IOMAP_F_SHARED				0x04
+#define IOMAP_F_FSVERITY			(1U << 11)
 #define xfs_bmbt_to_iomap(a, b, c, d, e, f)	((void) 0)
 
 /* fake up kernel's iomap, (not) used in xfs_bmap.[ch] */
@@ -466,6 +467,7 @@ int xfs_bmap_last_extent(struct xfs_trans *tp, struct xfs_inode *ip,
 
 /* xfs_inode.h */
 #define xfs_iflags_set(ip, flags)	do { } while (0)
+#define xfs_iflags_test(ip, flags)	(0)
 #define xfs_finish_inode_setup(ip)	((void) 0)
 
 /* linux/wordpart.h */

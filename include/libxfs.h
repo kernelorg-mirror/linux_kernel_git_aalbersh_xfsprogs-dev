@@ -13,6 +13,7 @@
 #define CONFIG_XFS_RT 1
 /* Ditto in-memory btrees */
 #define CONFIG_XFS_BTREE_IN_MEM 1
+#define CONFIG_FS_VERITY 1
 
 #include "libxfs_api_defs.h"
 #include "platform_defs.h"

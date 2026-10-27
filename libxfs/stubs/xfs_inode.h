@@ -57,6 +57,8 @@ struct inode;
 static inline bool IS_I_VERSION(const struct inode *inode) { return false; }
 #define inode_maybe_inc_iversion(inode,flags)	(0)
 
+#define XFS_VERITY_CONSTRUCTION		(1 << 13)
+
 /*
  * Inode interface. This fakes up a "VFS inode" to make the xfs_inode appear
  * similar to the kernel which now is used tohold certain parts of the on-disk
